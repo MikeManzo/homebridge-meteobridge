@@ -1,0 +1,33 @@
+{
+    "name": "homebridge-meteobridge",
+    "version": "0.0.1",
+    "author": "Mike Manzo",
+    "license": "MIT",
+    "description": "Plugin for Homebridge to use meteobridge-connected weatherstations with HomeKit",
+    "main": "index.js",
+    "scripts": {
+      "test": "./node_modules/jshint/bin/jshint index.js"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/MikeManzo/homebridge-meteoboridge.git"
+    },
+    "bugs": {
+      "url": "https://github.com/MikeManzo/homebridge-meteoboridge/issues"
+    },
+    "homepage": "https://github.com/MikeManzo/homebridge-meteoboridge#readme",
+    "keywords": [
+      "homebridge-plugin",
+      "meteobridge"
+    ],
+    "engines": {
+      "node": ">=0.12.0",
+      "homebridge": ">=0.2.0"
+    },
+    "dependencies": {
+      "request": "^2.65.0"
+    },
+    "devDependencies": {
+      "jshint": "^2.9.0"
+    }
+  }
