@@ -32,7 +32,7 @@ Add the following information to your config.json file (without the <-- comments
     ]
 ```
 ### Field Explainations
-           "accessory": "HomeMeteobridge",      <-- Our Accessory name
+            "accessory": "HomeMeteobridge",     <-- Our Accessory name
             "name": "Meteobridge",              <-- Easy to remember name
             "ip_address":  "A.B.C.D",           <-- IP address of our meteobridge
             "frequency": 5000,                  <-- Update frequency (5 second min)
