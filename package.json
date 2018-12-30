@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "author": "Mike Manzo",
     "license": "MIT",
-    "description": "Plugin for Homebridge to use meteobridge-connected weatherstations with HomeKit",
+    "description": "Plugin for Homebridge to display Temperature and Humidity for meteobridge-connected weatherstations.",
     "main": "index.js",
     "scripts": {
       "test": "./node_modules/jshint/bin/jshint index.js"
@@ -18,7 +18,10 @@
     "homepage": "https://github.com/MikeManzo/homebridge-meteoboridge#readme",
     "keywords": [
       "homebridge-plugin",
-      "meteobridge"
+      "meteobridge",
+      "temperature",
+      "humidity",
+      "weather"
     ],
     "engines": {
       "node": ">=0.12.0",

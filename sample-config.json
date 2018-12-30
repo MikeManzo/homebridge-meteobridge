@@ -1,0 +1,9 @@
+"accessories": [
+    {
+        "accessory": "HomeMeteobridge",
+        "name": "Meteobridge",
+        "ip_address":  "http://10.0.0.137",
+        "password": "apr13mansm",
+        "frequency": 5000,
+        "debug": "true"
+    }
