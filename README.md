@@ -32,12 +32,12 @@ Add the following information to your config.json file (without the <-- comments
     ]
 ```
 ### Field Explainations
-            "accessory": "HomeMeteobridge",     <-- Our Accessory name
-            "name": "Meteobridge",              <-- Easy to remember name
-            "ip_address":  "A.B.C.D",           <-- IP address of our meteobridge
-            "frequency": 5000,                  <-- Update frequency (5 second min)
-            "password": "<password>",           <-- Admin password for Meteobridge
-            "debug": "true"                     <-- Display temp/humidity readings in the console
+    "accessory": "HomeMeteobridge", <-- Our Accessory name
+    "name": "Meteobridge",          <-- Easy to remember name
+    "ip_address":  "A.B.C.D",       <-- IP address of our meteobridge
+    "frequency": 5000,              <-- Update frequency (5 second min)
+    "password": "<password>",       <-- Admin password for Meteobridge
+    "debug": "true"                 <-- Display readings in the console
 
 #### Things yet to do:
 1. Add support for other sensors like wind, rain, etc ...
