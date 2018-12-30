@@ -20,16 +20,16 @@ No keys or APIs required.  We just rely on the fact that **(a)** you have a weat
 Add the following information to your config.json file (without the <-- comments)
 ```
 
-   "accessories": [
-        {
-            "accessory": "HomeMeteobridge",
-            "name": "Meteobridge",
-            "ip_address":  "A.B.C.D",
-            "frequency": 5000,
-            "password": "<password>",
-            "debug": "true"
-        }
-    ]
+"accessories": [
+    {
+      "accessory": "HomeMeteobridge",
+      "name": "Meteobridge",
+      "ip_address":  "A.B.C.D",
+      "frequency": 5000,
+      "password": "<password>",
+      "debug": "true"
+    }
+]
 ```
 ### Field Explainations
     "accessory": "HomeMeteobridge", <-- Our Accessory name
