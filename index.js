@@ -114,6 +114,10 @@ HomeMeteobridgeAccessory.prototype = {
 
     We will need to build the appropriate request for our data: 
         1. http://your.unique.station.ip/cgi-bin/template.cgi?template=[th0temp-act=.1:---],[th0hum-act:---]
+        2. Data is returned as follows:
+            data[0]: Temperature
+            data[1]: Humidity
+            data[2]: Battery Health (1 is low battery)
 
     Once we check for validity, we simply convert our data and format our weather object accordingly .. then call the callback.
     NOTE: We will need to pass the user credentials for your meteobridge with your request.  Remember:
@@ -123,15 +127,16 @@ HomeMeteobridgeAccessory.prototype = {
     getState: function (callback) {
         var that = this
 
-        request("http://" + "meteobridge:" + this.passoword + "@" + that.ip + "/cgi-bin/template.cgi?template=[th0temp-act=.1:---],[th0hum-act:---]", (error, response, body) => {
+        request("http://" + "meteobridge:" + this.passoword + "@" + that.ip + "/cgi-bin/template.cgi?template=[th0temp-act=.1:---],[th0hum-act:---],[th0lowbat-act:---]", (error, response, body) => {
             if (!error && response.statusCode == 200) {
                 var data = body.split(',');
                 if (!isNaN(data[0]) && !isNaN(data[1])) {
                     that.weather.temperature    = parseFloat(data[0]);
                     that.weather.humidity       = parseFloat(data[1]);
-                    that.temperatureService.setCharacteristic(Characteristic.StatusFault, 0);
-                    that.humidityService.setCharacteristic(Characteristic.StatusFault, 0);
+                    that.humidityService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
+                    that.temperatureService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
                 } else {
+                    that.log.info("Retrieved poor data; setting values to zero & faulting.");
                     that.weather.temperature    = 0;
                     that.weather.humidity       = 0;
                     that.temperatureService.setCharacteristic(Characteristic.StatusFault, 1);
@@ -142,9 +147,8 @@ HomeMeteobridgeAccessory.prototype = {
                 that.temperatureService.setCharacteristic(Characteristic.StatusFault, 1);
                 that.humidityService.setCharacteristic(Characteristic.StatusFault, 1);
             }
+            callback(that.weather);
         });
-
-        callback(that.weather);
     },
 
     identify: function (callback) {
@@ -157,14 +161,33 @@ HomeMeteobridgeAccessory.prototype = {
     */
     getServices: function () {
         var services = []
+        var serialNum = "Unknown"
+        var model = "Unknown"
+        var swVersion = 0.0
         var informationService = new Service.AccessoryInformation();
+
+        request("http://" + "meteobridge:" + this.passoword + "@" + this.ip + "/cgi-bin/template.cgi?template=[mbsystem-mac],[mbsystem-platform],[mbsystem-swversion]", (error, response, body) => {
+            if (!error && response.statusCode == 200) {
+                var data = body.split(',');
+                serialNum = data[0];
+                model = data[1];
+                swVersion = data[2];
+                this.log.info("Meteobridge --> Serial Number: " + serialNum + "   Model: " + model + "   Version: " + swVersion);
+            } else {
+                // Just let the console know we failed to get the Characteristics we want to show to the user
+                this.log.info("*** Warning ***: Unable to determine MAC address, Platform or Firmware version; defaults are being used.");
+            }
+        });
 
         informationService
             .setCharacteristic(Characteristic.Manufacturer, "HomeBridge")
-            .setCharacteristic(Characteristic.Model, "Meteobridge")
+            .setCharacteristic(Characteristic.Model, "Platform: " + model)
+            .setCharacteristic(Characteristic.SerialNumber, serialNum)
+            .setCharacteristic(Characteristic.Manufacturer, "Meteobridge")
+            .setCharacteristic(Characteristic.SoftwareRevision, swVersion);
   		services.push(informationService);
 
-        this.temperatureService = new Service.TemperatureSensor(this.name + " Temperature"); // Sensor will display "Meteobridge Temperature" 
+        this.temperatureService = new Service.TemperatureSensor(/*this.name + */"Temperature"); 
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature)
             .on('get', this.getStateTemperature.bind(this));
@@ -180,11 +203,15 @@ HomeMeteobridgeAccessory.prototype = {
             .setProps({maxValue: 120});
 		services.push(this.temperatureService);
 
-        this.humidityService = new Service.HumiditySensor(this.name + " Humidity"); // Sensor will display "Meteobridge Humidity"
+        this.humidityService = new Service.HumiditySensor(/*this.name + */"Humidity");
         this.humidityService
             .getCharacteristic(Characteristic.CurrentRelativeHumidity)
             .on('get', this.getStateHumidity.bind(this));
-		services.push(this.humidityService);
+        services.push(this.humidityService);
+
+        this.humidityService.addCharacteristic(Characteristic.StatusLowBattery);
+//        informationService.addCharacteristic(Characteristic.StatusActive);
+//        informationService.setCharacteristic(Characteristic.StatusActive, 1)
 
         return services;
     }
