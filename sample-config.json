@@ -2,7 +2,7 @@
     {
         "accessory": "HomeMeteobridge",
         "name": "Meteobridge",
-        "ip_address":  "10.0.0.137",
+        "ip_address":  "A.B.C.D",
         "password": "<password>",
         "frequency": 5000,
         "debug": "true"
