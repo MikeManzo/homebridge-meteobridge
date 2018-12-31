@@ -43,9 +43,9 @@ Add the following information to your config.json file:
 #### Things yet to do:
 1. Add support for other sensors exposed by Meteobridge (e.g., wind, rain, solar, etc.)
 2. Add support for forecasted temperature based on Lat/Lon in Meteobridge.
-3. ~~Add support for battery status~~
-4. ~~Add support for dynamically updaing sensor info with Meteobridge specifics (e.g., Model #, Firmware Version, etc.)~~
-5. ~~Add Support for active and inactive status~~
+3. ~~Add support for battery status~~ _[v0.0.2]_
+4. ~~Add support for dynamically updaing sensor info with Meteobridge specifics (e.g., Model #, Firmware Version, etc.)~~ _[v0.0.2]_
+5. ~~Add Support for active and inactive status~~ _[v0.0.2]_
 6. ?? What else ??
 
 #### Credits
