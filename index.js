@@ -12,9 +12,11 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTH
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-var request = require("request");
-var Service, Characteristic;
+var request = require("request");           // Async HTTP Requests
+var syncRequest = require('sync-request');  // Sync HTTP Requests
+var rp = require('request-promise');        // Promises Support
 
+var Service, Characteristic;
 var temperatureService;
 var humidityService;
 
@@ -133,19 +135,30 @@ HomeMeteobridgeAccessory.prototype = {
                 if (!isNaN(data[0]) && !isNaN(data[1])) {
                     that.weather.temperature    = parseFloat(data[0]);
                     that.weather.humidity       = parseFloat(data[1]);
+
+                    that.humidityService.setCharacteristic(Characteristic.StatusActive, 1);
                     that.humidityService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
+
+                    that.temperatureService.setCharacteristic(Characteristic.StatusActive, 1);
                     that.temperatureService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
                 } else {
                     that.log.info("Retrieved poor data; setting values to zero & faulting.");
                     that.weather.temperature    = 0;
                     that.weather.humidity       = 0;
+
                     that.temperatureService.setCharacteristic(Characteristic.StatusFault, 1);
+                    that.temperatureService.setCharacteristic(Characteristic.StatusActive, 0);
+
                     that.humidityService.setCharacteristic(Characteristic.StatusFault, 1);
+                    that.humidityService.setCharacteristic(Characteristic.StatusActive, 0);
                 }
             } else {
                 that.log.info("Error retrieving temperature & humidity data from: " + that.ip);
                 that.temperatureService.setCharacteristic(Characteristic.StatusFault, 1);
+                that.temperatureService.setCharacteristic(Characteristic.StatusActive, 0);
+
                 that.humidityService.setCharacteristic(Characteristic.StatusFault, 1);
+                that.humidityService.setCharacteristic(Characteristic.StatusActive, 0);
             }
             callback(that.weather);
         });
@@ -158,36 +171,61 @@ HomeMeteobridgeAccessory.prototype = {
 
     /*
     Set up the services we are going to expose.  Very simple ... Temperature and humidity for us.
+        Note (1):   I chose to use "sync-request" because I wanted the getServices fucntion to block until we recieved thespecificzations
+                    from the Meteobridge.  I could not figure out a way to do it in the completion block of the async request call (I even tried promises).
+                    If someone can show me a way to accomplish this w/o a bnlocing call, I will use it.  For now, this function gets called once.  We can 
+                    block until it returns.
+        Note (2):   Here is the promise block I would have liked to have used
+                        rp("http://" + "meteobridge:" + this.passoword + "@" + this.ip + "/cgi-bin/template.cgi?template=[mbsystem-mac],[mbsystem-platform],[mbsystem-swversion]")
+                            .then(function (result) {
+                                var data = result.split(',');
+                                serialNum = data[0];
+                                model = data[1];
+                                swVersion = data[2];
+                                that.log.info("Specifications --> Serial Number: " + serialNum + "   Model: " + model + "   Version: " + swVersion);
+
+                            })
+                            .catch(function (err) {
+                                that.log.error("*** Error ***: " + err);
+                                that.log.info("*** Warning ***: Unable to determine MAC address, Platform or Firmware version; defaults are being used.");
+                        });
+        Note (3):   
     */
     getServices: function () {
-        var services = []
         var serialNum = "Unknown"
         var model = "Unknown"
         var swVersion = 0.0
+
         var informationService = new Service.AccessoryInformation();
+        var services = []
+        var that = this;
 
-        request("http://" + "meteobridge:" + this.passoword + "@" + this.ip + "/cgi-bin/template.cgi?template=[mbsystem-mac],[mbsystem-platform],[mbsystem-swversion]", (error, response, body) => {
-            if (!error && response.statusCode == 200) {
-                var data = body.split(',');
-                serialNum = data[0];
-                model = data[1];
-                swVersion = data[2];
-                this.log.info("Meteobridge --> Serial Number: " + serialNum + "   Model: " + model + "   Version: " + swVersion);
-            } else {
-                // Just let the console know we failed to get the Characteristics we want to show to the user
-                this.log.info("*** Warning ***: Unable to determine MAC address, Platform or Firmware version; defaults are being used.");
-            }
-        });
+        var myURL = "http://" + "meteobridge:" + this.passoword + "@" + this.ip + "/cgi-bin/template.cgi?template=[mbsystem-mac],[mbsystem-platform],[mbsystem-swversion]";
+        var result = syncRequest('GET', myURL);
+        if (result.statusCode == 200) {
+            var body = result.getBody().toString();
+            var data = body.split(',');
+            serialNum = data[0];
+            model = data[1];
+            swVersion = data[2];
+        } else {
+            that.log.error("*** Error ***: " + result.statusCode);
+            that.log.info("*** Warning ***: Unable to determine Meteobridge specifics; defaults are being used.");
+        }
 
+        that.log.info("Specifications --> Serial Number: " + serialNum + "   Model: " + model + "   Version: " + swVersion);
         informationService
-            .setCharacteristic(Characteristic.Manufacturer, "HomeBridge")
-            .setCharacteristic(Characteristic.Model, "Platform: " + model)
+            .setCharacteristic(Characteristic.Manufacturer, "smartbedded GmbH")
+            .setCharacteristic(Characteristic.Model, "Platform Type: " + model)
             .setCharacteristic(Characteristic.SerialNumber, serialNum)
-            .setCharacteristic(Characteristic.Manufacturer, "Meteobridge")
-            .setCharacteristic(Characteristic.SoftwareRevision, swVersion);
-  		services.push(informationService);
+            .setCharacteristic(Characteristic.FirmwareRevision, "Meteobridge: " + swVersion)
+            .setCharacteristic(Characteristic.Name, "Meteobridge")
+        
+        informationService.addCharacteristic(Characteristic.StatusActive);
+        informationService.addCharacteristic(Characteristic.StatusFault);
+        services.push(informationService); // Add informationService to the array of services we are going to return
 
-        this.temperatureService = new Service.TemperatureSensor(/*this.name + */"Temperature"); 
+        this.temperatureService = new Service.TemperatureSensor("Temperature"); 
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature)
             .on('get', this.getStateTemperature.bind(this));
@@ -201,18 +239,22 @@ HomeMeteobridgeAccessory.prototype = {
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature)
             .setProps({maxValue: 120});
-		services.push(this.temperatureService);
 
-        this.humidityService = new Service.HumiditySensor(/*this.name + */"Humidity");
+        this.temperatureService.addCharacteristic(Characteristic.StatusActive);    
+        this.temperatureService.addCharacteristic(Characteristic.StatusFault);    
+        this.temperatureService.addCharacteristic(Characteristic.StatusLowBattery);
+		services.push(this.temperatureService); // Add temperatureService to the array of services (sensors, really) we are going to return
+
+        this.humidityService = new Service.HumiditySensor("Humidity");
         this.humidityService
             .getCharacteristic(Characteristic.CurrentRelativeHumidity)
             .on('get', this.getStateHumidity.bind(this));
-        services.push(this.humidityService);
-
+        
+        this.humidityService.addCharacteristic(Characteristic.StatusActive);
+        this.humidityService.addCharacteristic(Characteristic.StatusFault);
         this.humidityService.addCharacteristic(Characteristic.StatusLowBattery);
-//        informationService.addCharacteristic(Characteristic.StatusActive);
-//        informationService.setCharacteristic(Characteristic.StatusActive, 1)
-
-        return services;
+        services.push(this.humidityService);    // Add humidityService to the array of services (sensors) we are going to return
+ 
+        return services; 
     }
 };

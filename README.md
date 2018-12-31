@@ -9,15 +9,17 @@ A pretty basic plugin for Homebridge to display Temperature and Humidity for [me
 2. Install this plugin using: **_npm install -g homebridge-meteobridge_**
 3. Update your configuration file to reflect your local conditions (**see the sample below**)
 
-No keys or APIs required.  We just rely on the fact that **(a)** you have a weather station on your local networtk connected through a Meteobridge and **(b)** Meteobridge exposes templates for us to take advantage of.  
+No keys, or APIs required.  We just rely on the fact that **(a)** You have a weather station on your local network connected through a Meteobridge and **(b)** Meteobridge exposes templates for us to take advantage of.
+
+All you need is the IP address and admin password for your Meteobridge. (**_Note: The admin password is only used to make the local HTTP 'GET' calls._**)
 
 ## Meteobridge References
 1. [Meteobridge Templates](https://www.meteobridge.com/wiki/index.php/Templates)
 2. [Meteobridge Add-On Services](https://www.meteobridge.com/wiki/index.php/Add-On_Services)
-
+3. Try [this](http://magicip.meteobridge.com) if you don't know your Meteobridge's IP address.
 
 ## Sample Configuration
-Add the following information to your config.json file (without the <-- comments)
+Add the following information to your config.json file:
 ```
 "accessories": [
     {
@@ -39,9 +41,12 @@ Add the following information to your config.json file (without the <-- comments
     "debug": "true"                 <-- Display readings in the console
 
 #### Things yet to do:
-1. Add support for other sensors like wind, rain, etc ...
-2. Add support for forecasts ...
-3. ??  Any ideas ??
+1. Add support for other sensors exposed by Meteobridge (e.g., wind, rain, solar, etc.)
+2. Add support for forecasted temperature based on Lat/Lon in Meteobridge.
+3. ~~Add support for battery status~~
+4. ~~Add support for dynamically updaing sensor info with Meteobridge specifics (e.g., Model #, Firmware Version, etc.)~~
+5. ~~Add Support for active and inactive status~~
+6. ?? What else ??
 
 #### Credits
 This plugin was heavily influenced by the Thorsten Voß's [homebridge-wunderground](https://github.com/xfjx/homebridge-wunderground) work.  With Wunderground likely becoming inaccessible as a free service in teh not-so-distant future, I chose to make this "local" version for people to use (if they have a Meteobridge-connected weather station, of course).
