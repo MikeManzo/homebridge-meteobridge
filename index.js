@@ -138,9 +138,11 @@ HomeMeteobridgeAccessory.prototype = {
 
                     that.humidityService.setCharacteristic(Characteristic.StatusActive, 1);
                     that.humidityService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
+                    that.humidityService.setCharacteristic(Characteristic.StatusFault, 0);
 
                     that.temperatureService.setCharacteristic(Characteristic.StatusActive, 1);
                     that.temperatureService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
+                    that.temperatureService.setCharacteristic(Characteristic.StatusFault, 0);
                 } else {
                     that.log.info("Retrieved poor data; setting values to zero & faulting.");
                     that.weather.temperature    = 0;
@@ -165,8 +167,8 @@ HomeMeteobridgeAccessory.prototype = {
     },
 
     identify: function (callback) {
-        this.log("Identify requested!");
-        callback(); // success
+        this.log("My identify has been requested - so send it!");
+        callback();
     },
 
     /*
@@ -189,7 +191,8 @@ HomeMeteobridgeAccessory.prototype = {
                                 that.log.error("*** Error ***: " + err);
                                 that.log.info("*** Warning ***: Unable to determine MAC address, Platform or Firmware version; defaults are being used.");
                         });
-        Note (3):   
+        Note (3):   Added support fot fault and active notifications; I don't see that I can trigger off of the active vs. inactive ... but it's cool to see the 
+                    status in the app when it changes.
     */
     getServices: function () {
         var serialNum = "Unknown"
