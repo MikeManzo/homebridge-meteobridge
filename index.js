@@ -15,12 +15,10 @@
 var request = require("request");           // Async HTTP Requests
 var syncRequest = require('sync-request');  // Sync HTTP Requests
 var rp = require('request-promise');        // Promises Support
+var inherits = require('util').inherits;    // Inheritance Support
 const moment = require('moment');           // Unix Tiime
 
 var Service, Characteristic, FakeGatoHistoryService;
-var temperatureService;
-var humidityService;
-var historyService;
 
 /*
     Very important to export and expose our name and accessories!
@@ -73,8 +71,11 @@ function HomeMeteobridgeAccessory(log, config) {
         freq = 5000;
     }
 
-    this.weather.temperature = 0.0
-    this.weather.humidity    = 0.0
+    this.weather.temperature    = 0.0;
+    this.weather.humidity       = 0.0;
+    this.weather.airpresssure   = 0.0;
+    this.weather.uv             = 0.0;
+    this.weather.windspeed      = 0.0;
 
     var that = this;
     setTimeout(function() {
@@ -91,11 +92,18 @@ HomeMeteobridgeAccessory.prototype = {
 			var that = this;
         
             if (that.debug == 'true') {
-                that.log.info("Weatherstation Temperature is: %s, Humidity is: %s", measurement.temperature, measurement.humidity);
+                that.log.info("Weatherstation Temperature is: %s // Humidity is: %s // Pressue is: %s // UV Index is: %s // Wind Speed: %s", 
+                               measurement.temperature, measurement.humidity,
+                               measurement.airpresssure, measurement.uv,
+                               measurement.windspeed);
             }
 
 			that.temperatureService.setCharacteristic(Characteristic.CurrentTemperature, measurement.temperature || 0);
-			that.humidityService.setCharacteristic(Characteristic.CurrentRelativeHumidity, measurement.humidity || 0);
+            that.humidityService.setCharacteristic(Characteristic.CurrentRelativeHumidity, measurement.humidity || 0);
+
+            that.weatherSensorService.setCharacteristic(AirPressure, measurement.airpresssure || 0.0);
+            that.weatherSensorService.setCharacteristic(WindSpeed, measurement.windspeed || 0.0);
+            that.weatherSensorService.setCharacteristic(UVSensor, measurement.uv || 0);
         
             setTimeout(function() {
 				that.servicePolling();
@@ -118,7 +126,34 @@ HomeMeteobridgeAccessory.prototype = {
     */
    getStateTemperature: function(callback) {
         this.getState(function(w) {
-            callback(null, w.temperature || 0);
+            callback(null, w.temperature || 0.0);
+        });
+    },
+
+    /*
+        What is the state of the Air Pressure accessory?
+    */
+    getCurrentAirPressure: function(callback) {
+        this.getState(function(w) {
+            callback(null, w.airpresssure || 0.0);
+        });
+    },
+
+    /*
+        What is the state of the UV accessory?
+    */
+   getCurrentUV: function(callback) {
+        this.getState(function(w) {
+            callback(null, w.uv || 0.0);
+        });
+    },
+
+    /*
+        What is the state of the UV accessory?
+    */
+   getCurrentWindSpeed: function(callback) {
+       this.getState(function(w) {
+        callback(null, w.windspeed || 0.0);
         });
     },
 
@@ -130,8 +165,8 @@ HomeMeteobridgeAccessory.prototype = {
         As always - we have the opportunity for some debugging ... but the defualt is off.  Let it ride.
     */
     addToHistory: function() {
-        var measuremenTime = moment().unix(); //new Date().getTime() / 1000;
-        var temp, humidity;
+        var measuremenTime = moment().unix();
+        var temp, humidity, pressure;
         var that = this;
 
         for (var i = 0; i < this.services.length; i++) {
@@ -148,20 +183,22 @@ HomeMeteobridgeAccessory.prototype = {
                 case "E863F007-079E-48FF-8F27-9C2605A29F52":    // FakeGatoHistoryService
                     // Ignore
                 break;
+                case "91c9e63b-4319-4983-92bd-604ca8ce2063":    // WeatherSensorService
+                    pressure = this.services[i].getCharacteristic(AirPressure).value;
+                break;
                 default:
-                    that.log.error("UUID Slipped through")
-                    temp = humidity = 0;
+                    that.log.error("Undefined UUID for Eve detected: [%s] - Ignoring.", this.services[i].UUID);
                 break;
             }
         }
         if (that.debug == 'true') {
-            that.log.info("Saving weatherstation history for Temperature: %s, & Humidity: %s @ time %s", temp, humidity, measuremenTime);
+            that.log.info("Saving weatherstation history for Temperature: %s, Humidity: %s, Pressure: %s @ time %s", temp, humidity, pressure, measuremenTime);
         }
 
         that.historyService.addEntry( {
             time: measuremenTime,
             temp: temp,
-            pressure: 0,
+            pressure: pressure,
             humidity: humidity
         });
 
@@ -179,7 +216,10 @@ HomeMeteobridgeAccessory.prototype = {
             2. Data is returned as follows:
                 data[0]: Temperature
                 data[1]: Humidity
-                data[2]: Battery Health (1 is low battery)
+                data[2]: Pressure
+                data[3]: UV
+                data[4]: Wind Speed
+                data[5]: Battery Health (1 is low battery)
 
         Once we check for validity, we simply convert our data and format our weather object accordingly .. then call the callback.
         NOTE: We will need to pass the user credentials for your meteobridge with your request.  Remember:
@@ -194,24 +234,27 @@ HomeMeteobridgeAccessory.prototype = {
     getState: function (callback) {
         var that = this
 
-        request("http://" + "meteobridge:" + this.passoword + "@" + that.ip + "/cgi-bin/template.cgi?template=[th0temp-act=.1:---],[th0hum-act:---],[th0lowbat-act:---]", (error, response, body) => {
+        request("http://" + "meteobridge:" + this.passoword + "@" + that.ip + "/cgi-bin/template.cgi?template=[th0temp-act=.1:---],[th0hum-act:---],[thb0press-act:---],[uv0index-act:---],[wind0wind-act:---],[th0lowbat-act:---]",
+                                                                                (error, response, body) => {
             if (!error && response.statusCode == 200) {
                 var data = body.split(',');
                 if (!isNaN(data[0]) && !isNaN(data[1])) {
-                    that.weather.temperature    = parseFloat(data[0]);
-                    that.weather.humidity       = parseFloat(data[1]);
+                    that.weather.temperature    = parseFloat(data[0]);  // Temp
+                    that.weather.humidity       = parseFloat(data[1]);  // Humidity
+                    that.weather.airpresssure   = parseFloat(data[2]);  // Pressure
+                    that.weather.uv             = parseFloat(data[3]);  // Ultra Violet Index
+                    that.weather.windspeed      = parseFloat(data[4]);  // Wind Speed
+
 
                     that.humidityService.setCharacteristic(Characteristic.StatusActive, 1);
-                    that.humidityService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
+                    that.humidityService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[5]));
                     that.humidityService.setCharacteristic(Characteristic.StatusFault, 0);
 
                     that.temperatureService.setCharacteristic(Characteristic.StatusActive, 1);
-                    that.temperatureService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[2]));
+                    that.temperatureService.setCharacteristic(Characteristic.StatusLowBattery, parseInt(data[5]));
                     that.temperatureService.setCharacteristic(Characteristic.StatusFault, 0);
                 } else {
-                    that.log.info("Did not recieve valid data; setting values to zero & faulting.  Will try again in " + this.freq/1000 + " seconds.");
-                    that.weather.temperature = 0;
-                    that.weather.humidity    = 0;
+                    that.log.info("Did not recieve valid data from the Meteobridge; keeping previous values & faulting.  Next attempt in " + this.freq/1000 + " seconds.");
 
                     that.temperatureService.setCharacteristic(Characteristic.StatusFault, 1);
                     that.temperatureService.setCharacteristic(Characteristic.StatusActive, 0);
@@ -220,7 +263,7 @@ HomeMeteobridgeAccessory.prototype = {
                     that.humidityService.setCharacteristic(Characteristic.StatusActive, 0);
                 }
             } else {
-                that.log.error("Error retrieving temperature & humidity data from: " + that.ip + " because of error: " + error + " with a response code of: " + response.statusCode);
+                that.log.error("Error retrieving station data from: " + that.ip + " because of error: " + error + " with a response code of: " + response.statusCode);
                 that.temperatureService.setCharacteristic(Characteristic.StatusFault, 2);
                 that.temperatureService.setCharacteristic(Characteristic.StatusActive, 0);
 
@@ -265,7 +308,6 @@ HomeMeteobridgeAccessory.prototype = {
         var swVersion = 0.0
 
         var informationService = new Service.AccessoryInformation();
-        //var services = []
         this.services = [];
         var that = this;
 
@@ -281,6 +323,82 @@ HomeMeteobridgeAccessory.prototype = {
             that.log.error("*** Error ***: " + result.statusCode);
             that.log.info("*** Warning ***: Unable to determine Meteobridge specifics; defaults are being used.");
         }
+    
+        // Custom Airpressure Characteristic
+        AirPressure = function () {
+            Characteristic.call(this, 'Air Pressure', '7e4d6810-5dd3-45ea-a24f-7190f883e2f6');
+            this.setProps({
+                format: Characteristic.Formats.FLOAT,
+                unit: "hPa",
+                maxValue: 1200,
+                minValue: 600,
+                minStep: 0.1,
+                perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+            });
+            this.value = this.getDefaultValue();
+        };
+        inherits(AirPressure, Characteristic);
+        AirPressure.UUID = '7e4d6810-5dd3-45ea-a24f-7190f883e2f6';
+
+        // Custom Windspeed Characteristic
+        WindSpeed = function () {
+            Characteristic.call(this, 'Wind Speed', '2566e99c-f091-48d9-b977-f93d69264deb');
+            this.setProps({
+                format: Characteristic.Formats.FLOAT,
+                unit: "m/s",
+                maxValue: 1000,
+                minValue: 0,
+                minStep: 0.1,
+                perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+            });
+            this.value = this.getDefaultValue();
+        };
+        inherits(WindSpeed, Characteristic);
+        AirPressure.UUID = '2566e99c-f091-48d9-b977-f93d69264deb';
+
+        // Custom UV Characteristic
+        UVSensor = function () {
+            Characteristic.call(this, 'UV Index', '5e1d5b4e-8320-4ffe-8fc6-00591bf24bf7');
+            this.setProps({
+                format: Characteristic.Formats.UINT8,
+                maxValue: 10,
+                minValue: 0,
+                minStep: 1,
+                perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+            });
+            this.value = this.getDefaultValue();
+        };
+        inherits(UVSensor, Characteristic);
+        UVSensor.UUID = '5e1d5b4e-8320-4ffe-8fc6-00591bf24bf7';
+
+        // Custom Weather Sensor
+        WeatherSensor = function (displayName, subtype) {
+            Service.call(this, displayName, '91c9e63b-4319-4983-92bd-604ca8ce2063', subtype);
+
+            // Required Characteristic(s)
+            this.addCharacteristic(AirPressure);
+            this.addCharacteristic(UVSensor);
+            this.addCharacteristic(WindSpeed);
+
+            // Optional ....
+        };
+        inherits(WeatherSensor, Service);
+        WeatherSensor.UUID = '91c9e63b-4319-4983-92bd-604ca8ce2063';
+
+        this.weatherSensorService = new WeatherSensor('WeatherSensor');
+        this.weatherSensorService
+            .getCharacteristic(AirPressure)
+            .on('get', this.getCurrentAirPressure.bind(this));
+
+        this.weatherSensorService
+            .getCharacteristic(UVSensor)
+            .on('get', this.getCurrentUV.bind(this));
+
+        this.weatherSensorService
+            .getCharacteristic(WindSpeed)
+            .on('get', this.getCurrentWindSpeed.bind(this));
+
+        this.services.push(this.weatherSensorService);  // Add WeatherSensorService to the array of services we are going to return
 
         that.log.info("Specifications --> Serial Number: " + serialNum + "   Model: " + model + "   Version: " + swVersion);
         informationService
@@ -293,6 +411,7 @@ HomeMeteobridgeAccessory.prototype = {
         informationService.addCharacteristic(Characteristic.StatusActive);
         informationService.addCharacteristic(Characteristic.StatusFault);
         this.services.push(informationService); // Add informationService to the array of services we are going to return
+
 
         this.temperatureService = new Service.TemperatureSensor("Temperature"); 
         this.temperatureService
@@ -323,7 +442,7 @@ HomeMeteobridgeAccessory.prototype = {
         this.humidityService.addCharacteristic(Characteristic.StatusFault);
         this.humidityService.addCharacteristic(Characteristic.StatusLowBattery);
         this.services.push(this.humidityService);    // Add humidityService to the array of services (sensors) we are going to return
- 
+
         // Lert's create the history service for Elgato
         this.historyService = new FakeGatoHistoryService("weather", this, {
             storage: 'fs'

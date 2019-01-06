@@ -41,13 +41,18 @@ Add the following information to your config.json file:
     "debug": "true"                 <-- Display console messages [valid entries: 'true' || 'false']
 
 #### Things yet to do:
-- [ ] Add support for other sensors exposed by Meteobridge (e.g., pressure, wind, rain, solar, etc.)
+- [x] Add support for other sensors exposed by Meteobridge (e.g., pressure, wind, rain, solar, etc.) **_[v0.0.4]_**
+- [ ] Add support for user-defined units
 - [ ] Add support for forecasted temperatures based on the Lat/Lon found in Meteobridge.
 - [x] Add support for battery status **_[v0.0.2]_**
 - [x] Add support for updaing sensor info with Meteobridge specifics (e.g., Model #, Firmware Version, etc.) **_[v0.0.2]_**
 - [x] Add support for active and inactive status **_[v0.0.2]_**
 - [x] Add support for elgato history **_[v0.0.3]_**
 - [x] Add support for more descriptive console messages **_[v0.0.3]_**
+- [x] Add support for Wind Speed (Currently **only** displayed in the 'Eve App') **_[v0.0.4]_**
+- [x] Add support for Ultra Violet Index (Currently **only** displayed in the 'Eve App') **_[v0.0.4]_**
+- [x] Add support for Air Pressure [and History] (Currently **only** displayed in the 'Eve App') **_[v0.0.4]_**
+- [x] Stability and bug fixing **_[v0.0.4]_**
 
 #### Credits
 This plugin was heavily influenced by the [Thorsten Voß's](https://github.com/xfjx) plugin:[homebridge-wunderground](https://github.com/xfjx/homebridge-wunderground).  With Wunderground likely becoming inaccessible as a free service in the not-so-distant future, I chose to make this "local" version for people to use (if they have a Meteobridge-connected weather station, of course).

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-meteobridge",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Mike Manzo",
   "license": "MIT",
   "description": "Plugin for Homebridge to display Temperature and Humidity for meteobridge-connected weatherstations.",
