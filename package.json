@@ -1,24 +1,24 @@
 {
-  "name": "homebridge-meteobridge",
-  "version": "0.0.4",
+  "name": "homebridge-meteohub",
+  "version": "0.0.1",
   "author": "Mike Manzo",
   "license": "MIT",
-  "description": "Plugin for Homebridge to display Temperature and Humidity for meteobridge-connected weatherstations.",
+  "description": "Plugin for Homebridge to display Temperature and Humidity for meteohub-connected weatherstations.",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/jshint/bin/jshint index.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MikeManzo/homebridge-meteoboridge.git"
+    "url": "git+https://github.com/MikeManzo/homebridge-meteohub.git"
   },
   "bugs": {
-    "url": "https://github.com/MikeManzo/homebridge-meteoboridge/issues"
+    "url": "https://github.com/MikeManzo/homebridge-meteobohub/issues"
   },
-  "homepage": "https://github.com/MikeManzo/homebridge-meteoboridge#readme",
+  "homepage": "https://github.com/MikeManzo/homebridge-meteobohub#readme",
   "keywords": [
     "homebridge-plugin",
-    "meteobridge",
+    "meteohub",
     "temperature",
     "humidity",
     "weather",
@@ -32,7 +32,8 @@
     "fakegato-history": "^0.5.3",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
-    "sync-request": "^6.0.0"
+    "sync-request": "^6.0.0",
+    "xml2json": "^0.11.2"
   },
   "devDependencies": {
     "jshint": "^2.9.0"
